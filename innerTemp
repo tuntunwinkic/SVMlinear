@@ -1,0 +1,84 @@
+#include <ESP8266WiFi.h>
+#include "DHT.h"
+
+#define DHTPIN D8     // what digital pin we're connected to-- connected to D8 pin
+
+#define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
+
+// Wi-Fi Settings
+const char* ssid = "yourwifi"; // your wireless network name (SSID)
+const char* password = "wifi_password"; // your Wi-Fi network password
+
+DHT dht(DHTPIN, DHTTYPE);
+
+WiFiClient client;
+
+// ThingSpeak Settings
+const int channelID = 00000;
+String writeAPIKey = "yourthingspeakapi"; // write API key for your ThingSpeak Channel
+const char* server = "api.thingspeak.com";
+const int postingInterval = 10 * 1000; // post data every x seconds
+
+void setup() {
+  Serial.begin(115200);
+  dht.begin();
+  WiFi.mode(WIFI_STA);   
+  WiFi.begin(ssid, password);
+  Serial.println();
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+
+
+  
+}
+
+void loop() {  
+  if (client.connect(server, 80)) {
+
+
+    
+    // Measure Analog Input (A0)
+    float h = dht.readHumidity();
+    float t = dht.readTemperature();
+    Serial.println(h);
+    Serial.println(t);
+    
+    
+
+    // Construct API request body
+    String body = "&field6=";
+           body += String(h);
+           body += "&field7=";
+           body += String(t);
+           
+
+
+
+    client.println("POST /update HTTP/1.1");
+    client.println("Host: api.thingspeak.com");
+    client.println("User-Agent: ESP8266 (nothans)/1.0");
+    client.println("Connection: close");
+    client.println("X-THINGSPEAKAPIKEY: " + writeAPIKey);
+    client.println("Content-Type: application/x-www-form-urlencoded");
+    client.println("Content-Length: " + String(body.length()));
+    client.println("");
+    client.print(body);
+  }
+  
+
+
+  // wait and then post again
+  delay(postingInterval);
+
+}
