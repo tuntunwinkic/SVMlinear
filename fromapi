@@ -1,0 +1,16 @@
+import requests
+import time
+
+while True:
+    api_address='http://api.openweathermap.org/data/2.5/weather?APPID=c749b4b4d030dbb281a3288ac7576360&q='
+
+    city = 'Hlegu'
+
+    url = api_address + city
+
+    json_data= requests.get(url).json()
+
+    formatted_data= json_data['wind']
+    print(formatted_data)
+    time.sleep(60)
+    
