@@ -1,0 +1,98 @@
+#include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>  // http web access library
+#include <ArduinoJson.h>        // JSON decoding library
+ 
+const char *ssid     = "htunhtun";
+const char *password = "htun12345";
+
+const int channelID = 834488;
+String writeAPIKey = "YIZMTOO87K7LCX6P"; // write API key for your ThingSpeak Channel
+const char* server = "api.thingspeak.com";
+WiFiClient client;
+
+
+void setup() {
+ 
+  Serial.begin(115200);
+  delay(500);
+  Serial.print("Connecting.");
+ 
+  WiFi.begin(ssid, password);   // access Wi-FI point
+ 
+  while ( WiFi.status() != WL_CONNECTED ) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("connected\r\n");
+ 
+}
+ 
+void loop() {
+ 
+  if (WiFi.status() == WL_CONNECTED) { //Check WiFi connection status
+ 
+    HTTPClient http;  //Declare an object of class HTTPClient
+ 
+   
+    
+    http.begin("http://api.openweathermap.org/data/2.5/weather?q=Hlegu&APPID=c749b4b4d030dbb281a3288ac7576360");
+
+ 
+    int httpCode = http.GET();  // send the request
+ 
+    if (httpCode > 0) { // check the returning code
+ 
+      String payload = http.getString();   //Get the request response payload
+ 
+      DynamicJsonBuffer jsonBuffer(512);
+ 
+      // Parse JSON object
+      JsonObject& root = jsonBuffer.parseObject(payload);
+      if (!root.success()) {
+        Serial.println(F("Parsing failed!"));
+        return;
+      }
+ 
+     
+      float wind_speed = root["wind"]["speed"];                   // get wind speed
+      int  wind_degree = root["wind"]["deg"];                     // get wind degree
+ 
+      // print data
+      
+      Serial.printf("Wind speed  = %.1f m/s\r\n", wind_speed);
+      Serial.printf("Wind degree = %d°\r\n\r\n", wind_degree);
+
+  if (client.connect(server, 80)) {
+
+String body = "&field1=";
+    body += String(wind_speed);
+    body += "&field2=";
+    body += String(wind_degree);
+
+
+
+
+
+    client.println("POST /update HTTP/1.1");
+    client.println("Host: api.thingspeak.com");
+    client.println("User-Agent: ESP8266 (nothans)/1.0");
+    client.println("Connection: close");
+    client.println("X-THINGSPEAKAPIKEY: " + writeAPIKey);
+    client.println("Content-Type: application/x-www-form-urlencoded");
+    client.println("Content-Length: " + String(body.length()));
+    client.println("");
+    client.print(body);
+
+
+  }
+      
+ 
+    }
+ 
+    http.end();   //Close connection
+ 
+  }
+ 
+  delay(60000);   // wait 1 minute
+ 
+}
